@@ -5,6 +5,7 @@ import 'package:bistro/classes/user.dart';
 import 'package:bistro/screens/widgets/cores.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 
 class Opcao extends StatefulWidget {
@@ -18,7 +19,7 @@ class Opcao extends StatefulWidget {
 
 class _OpcaoState extends State<Opcao> {
   List<Map<String, dynamic>> produtos = [];
-
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   @override
   void initState() {
     super.initState();
@@ -98,6 +99,7 @@ class _OpcaoState extends State<Opcao> {
     Size size = MediaQuery.of(context).size;
 
     return Scaffold(
+      key: _scaffoldKey,
       endDrawer: Drawer(
         child: CarrinhoModal(carrinhoProvider: carrinhoProvider),
       ),
@@ -168,9 +170,43 @@ class _OpcaoState extends State<Opcao> {
           Expanded(
             child: Column(
               children: [
-                ElevatedButton(
-                    onPressed: () => Scaffold.of(context).openEndDrawer(),
-                    child: Text('Carrinho')),
+                SizedBox(
+                  height: size.width * 0.01,
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    ElevatedButton.icon(
+                        icon: FaIcon(
+                          FontAwesomeIcons.bellConcierge,
+                          color: Colors.black,
+                        ),
+                        onPressed: () =>
+                            _scaffoldKey.currentState?.openEndDrawer(),
+                        label: const Text(
+                          'Chamar Garçom',
+                          style: TextStyle(
+                              color: Colors.black, fontWeight: FontWeight.w600),
+                        )),
+                    SizedBox(
+                      width: size.width * 0.01,
+                    ),
+                    IconButton(
+                      style: IconButton.styleFrom(
+                        backgroundColor: hexToColor(widget.user.primaryColor!),
+                      ),
+                      icon: Icon(
+                        Icons.shopping_cart_rounded,
+                        color: hexToColor(widget.user.secondaryColor!),
+                      ),
+                      onPressed: () =>
+                          _scaffoldKey.currentState?.openEndDrawer(),
+                    ),
+                    SizedBox(
+                      width: size.width * 0.01,
+                    ),
+                  ],
+                ),
                 Expanded(
                   child: ListView.builder(
                     shrinkWrap: true,
@@ -229,10 +265,12 @@ class _OpcaoState extends State<Opcao> {
                                         ],
                                       ),
                                       SizedBox(
+                                        //color: Colors.amber,
                                         height: size.height * 0.05,
+                                        width: size.width * 0.45,
                                         child: Row(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.stretch,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
                                             children: [
                                               Text(
                                                 'R\$${produto['price'].toString()}',

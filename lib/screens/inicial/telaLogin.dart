@@ -30,7 +30,6 @@ class _LoginScreenState extends State<LoginScreen> {
     if (masterSnapshot.docs.isNotEmpty) {
       var doc = masterSnapshot.docs.first;
 
-      // Inclui o ID no mapa de dados
       return {
         'id': doc.id,
         ...doc.data(),
@@ -64,11 +63,15 @@ class _LoginScreenState extends State<LoginScreen> {
           .get();
 
       if (funcionarioSnapshot.docs.isNotEmpty) {
+        var dataMaster = await _fetchMasterData(
+            funcionarioSnapshot.docs.first['email_master']);
+
         var data = funcionarioSnapshot.docs.first.data();
         return BistroUser(
           id: funcionarioSnapshot.docs.first.id,
           email: data['email'],
           tipoUser: 'salao',
+          idMaster: dataMaster!['id'],
           name: data['name'],
           telefone: data['telefone'].toString(),
           emailMaster: data['email_master'],
@@ -89,6 +92,8 @@ class _LoginScreenState extends State<LoginScreen> {
         print(dataMaster['primaryColor']);
 
         return BistroUser(
+          idSessao: '',
+          nomeSessao: '',
           id: mesaSnapshot.docs.first.id,
           email: data['email'],
           tipoUser: 'mesa',
@@ -124,11 +129,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (cozinhaSnapshot.docs.isNotEmpty) {
         var data = cozinhaSnapshot.docs.first.data();
+        var dataMaster = await _fetchMasterData(data['email_master']);
         return BistroUser(
           id: cozinhaSnapshot.docs.first.id,
           email: data['email'],
           tipoUser: 'cozinha',
           name: data['name'],
+          idMaster: dataMaster!['id'],
           telefone: data['telefone'].toString(),
           emailMaster: data['email_master'],
         );
@@ -195,7 +202,7 @@ class _LoginScreenState extends State<LoginScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Image.asset(
-              'assets/login_image.png',
+              'lib/assets/img/bistro-logo.png',
               height: 150,
             ),
             SizedBox(height: 24),

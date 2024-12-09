@@ -1,10 +1,10 @@
 import 'package:bistro/classes/user.dart';
 import 'package:bistro/screens/inicial/telaLogin.dart';
-import 'package:bistro/screens/salao/detalhesPedido.dart';
 import 'package:bistro/screens/widgets/cores.dart';
+import 'package:carousel_slider/carousel_slider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Salao extends StatefulWidget {
   final BistroUser user;
@@ -17,114 +17,195 @@ class Salao extends StatefulWidget {
 
 class _SalaoState extends State<Salao> {
   @override
+  @override
+  void initState() {
+    super.initState();
+    print('USER ID: ${widget.user.idMaster}');
+  }
+
+  Future<void> _logout() async {
+    await FirebaseAuth.instance.signOut();
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => LoginScreen()),
+    );
+  }
+
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Pedidos'),
-        iconTheme: const IconThemeData(color: Colors.white),
-        centerTitle: true,
+        title: Text('Pedidos', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),),
         backgroundColor: corPadrao(),
         actions: [
           IconButton(
-            tooltip: 'Sair',
             icon: Icon(Icons.logout),
-            onPressed: () async {
-              showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                        title: Text('Deseja realmente sair?'),
-                        //content: Text('Deseja realmente sair?'),
-                        actions: [
-                          TextButton(
-                              onPressed: () async {
-                                Navigator.of(context).pop();
-                              },
-                              child: Text('Cancelar')),
-                          TextButton(
-                              onPressed: () async {
-                                await FirebaseAuth.instance.signOut();
-                                Navigator.of(context).pop();
-                                Navigator.pushReplacement(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (context) => LoginScreen()),
-                                );
-                              },
-                              child: Text('Confirmar')),
-                        ],
-                      ));
-            },
+            onPressed: _logout,
+            tooltip: 'Logout',
           ),
         ],
       ),
-      body: SingleChildScrollView(
+      body: Column(
+        children: [
+          // Carrossel de Pedidos Pendentes
+          Text(
+            'Pedidos Pendentes',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(widget.user.idMaster)
+                  .collection('pedidos')
+                  .where('status', isEqualTo: 'pendente')
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return CircularProgressIndicator();
+                final pedidosPendentes = snapshot.data!.docs;
+                return CarouselSlider(
+                  options: CarouselOptions(
+                    enableInfiniteScroll: false,
+                    viewportFraction: 0.1,
+                    height: 200.0,
+                    autoPlay: false,
+                    enlargeCenterPage: false,
+                  ),
+                  items: pedidosPendentes.map((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    return PedidoCard(
+                      pedidoId: doc.id,
+                      mesa: data['numMesa'].toString(),
+                      itens: List<String>.from(
+                          data['itens'].map((item) => item['nome'])),
+                      quant: List<String>.from(data['itens']
+                          .map((item) => item['quantidade'].toString())),
+                      status: 'pendente',
+                      onStatusChange: () =>
+                          _atualizarStatusPedido(doc.id, 'em andamento'),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+          ),
+          // Carrossel de Pedidos Em Andamento
+          Text(
+            'Em Andamento',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(widget.user.idMaster)
+                  .collection('pedidos')
+                  .where('status', isEqualTo: 'em andamento')
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) return CircularProgressIndicator();
+                final pedidosEmAndamento = snapshot.data!.docs;
+                return CarouselSlider(
+                  options: CarouselOptions(
+                    enableInfiniteScroll: false,
+                    viewportFraction: 0.1,
+                    height: 200.0,
+                    autoPlay: false,
+                    enlargeCenterPage: false,
+                  ),
+                  items: pedidosEmAndamento.map((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    return PedidoCard(
+                      pedidoId: doc.id,
+                      mesa: data['numMesa'].toString(),
+                      itens: List<String>.from(
+                          data['itens'].map((item) => item['nome'])),
+                      quant: List<String>.from(data['itens']
+                          .map((item) => item['quantidade'].toString())),
+                      status: 'em andamento',
+                      onStatusChange: () =>
+                          _atualizarStatusPedido(doc.id, 'finalizado'),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _atualizarStatusPedido(
+      String pedidoId, String novoStatus) async {
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(widget.user.idMaster)
+        .collection('pedidos')
+        .doc(pedidoId)
+        .update({'status': novoStatus});
+  }
+
+}
+
+class PedidoCard extends StatelessWidget {
+  final String pedidoId;
+  final String mesa;
+  final List<String> itens;
+  final String status;
+  final VoidCallback onStatusChange;
+  final List<String> quant;
+
+  const PedidoCard({
+    required this.pedidoId,
+    required this.quant,
+    required this.mesa,
+    required this.itens,
+    required this.status,
+    required this.onStatusChange,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _buildSectionTitle('Em andamento'),
-            _buildPedidosStream('em_andamento', context),
-            _buildSectionTitle('Concluído'),
-            _buildPedidosStream('concluido', context),
-            _buildSectionTitle('Cancelados'),
-            _buildPedidosStream('cancelado', context),
+            Column(
+              children: [
+                Text(
+                  'Mesa $mesa',
+                  style: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                ...itens
+                    .map((item) => Text(
+                          item,
+                          style: TextStyle(fontWeight: FontWeight.w500),
+                        ))
+                    .toList(),
+              ],
+            ),
+            SizedBox(height: 8),
+            /*
+            ElevatedButton(
+              onPressed: onStatusChange,
+              child: Text(
+                status == 'pendente' ? 'Preparar' : 'Finalizar',
+                style:
+                    TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor:
+                    status == 'pendente' ? Colors.amber : Colors.green,
+              ),
+            ),*/
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Text(
-        title,
-        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-      ),
-    );
-  }
-
-  Widget _buildPedidosStream(String status, BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('pedidos')
-          .where('status', isEqualTo: status)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) return CircularProgressIndicator();
-        final pedidos = snapshot.data!.docs;
-        return ListView.builder(
-          shrinkWrap: true,
-          physics: NeverScrollableScrollPhysics(),
-          itemCount: pedidos.length,
-          itemBuilder: (context, index) {
-            final pedidoData = pedidos[index].data() as Map<String, dynamic>;
-            return GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => PedidoDetalhesScreen(
-                      pedidoId: pedidos[index].id,
-                    ),
-                  ),
-                );
-              },
-              child: Card(
-                child: ListTile(
-                  leading: Image.network(
-                    pedidoData['imagem'],
-                    width: 50,
-                    height: 50,
-                    fit: BoxFit.cover,
-                  ),
-                  title: Text('Mesa ${pedidoData['mesa']}'),
-                  subtitle: Text('Pedido: ${pedidoData['descricao']}'),
-                ),
-              ),
-            );
-          },
-        );
-      },
     );
   }
 }

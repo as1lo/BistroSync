@@ -1,5 +1,5 @@
 import 'dart:convert'; // For base64 decoding
-
+import 'package:art_sweetalert/art_sweetalert.dart';
 import 'package:bistro/classes/carrinho.dart';
 import 'package:bistro/classes/user.dart';
 import 'package:bistro/screens/widgets/cores.dart';
@@ -28,7 +28,7 @@ class _OpcaoState extends State<Opcao> {
   }
 
   void _loadData() async {
-    print('id: ${widget.categories[0]['categoryId']}');
+    print('id: ${widget.categories}');
     print('id user: ${widget.user.idMaster}');
 
     var data = await _getProducts(widget.categories[0]['categoryId']);
@@ -73,9 +73,11 @@ class _OpcaoState extends State<Opcao> {
               style: TextStyle(color: Colors.white),
             ),
             onTap: () async {
-              produtos = await _getProducts(category['id']);
+              var prod = await _getProducts(category['categoryId']);
 
-              setState(() {});
+              setState(() {
+                produtos = prod;
+              });
 
               print(
                   'Tapped on ${category['categoryName'] ?? 'Nenhuma opção disponível.'}');
@@ -101,11 +103,14 @@ class _OpcaoState extends State<Opcao> {
     return Scaffold(
       key: _scaffoldKey,
       endDrawer: Drawer(
-        child: CarrinhoModal(carrinhoProvider: carrinhoProvider),
+        child: CarrinhoModal(
+          carrinhoProvider: carrinhoProvider,
+          bistroUser: widget.user,
+          masterId: widget.user.idMaster!,
+        ),
       ),
       body: Row(
         children: [
-          // Sidebar
           Container(
             alignment: Alignment.center,
             width: size.width * 0.35,
@@ -296,14 +301,27 @@ class _OpcaoState extends State<Opcao> {
                                                                         size.width *
                                                                             0.01),
                                                               )),
-                                                      onPressed: () =>
+                                                      onPressed: () {
+                                                        try {
                                                           carrinhoProvider
                                                               .adicionarItem(
                                                                   produto['id'],
                                                                   produto[
                                                                       'name'],
                                                                   produto[
-                                                                      'price']),
+                                                                      'price']);
+                                                        } finally {
+                                                          ArtSweetAlert.show(
+                                                              context: context,
+                                                              artDialogArgs: ArtDialogArgs(
+                                                                  dialogMainAxisSize: MainAxisSize.min,
+                                                                  type: ArtSweetAlertType
+                                                                      .success,
+                                                                  title:
+                                                                      "Adicionado!",
+                                                                  ));
+                                                        }
+                                                      },
                                                       child: Text(
                                                         'Adicionar',
                                                         style: TextStyle(
@@ -334,8 +352,13 @@ class _OpcaoState extends State<Opcao> {
 
 class CarrinhoModal extends StatelessWidget {
   final CarrinhoProvider carrinhoProvider;
-
-  const CarrinhoModal({super.key, required this.carrinhoProvider});
+  final BistroUser bistroUser;
+  final String masterId;
+  const CarrinhoModal(
+      {super.key,
+      required this.carrinhoProvider,
+      required this.bistroUser,
+      required this.masterId});
 
   @override
   Widget build(BuildContext context) {
@@ -398,25 +421,40 @@ class CarrinhoModal extends StatelessWidget {
                           carrinhoProvider.limparCarrinho();
                           Navigator.pop(context); // Fecha o modal
                         },
-                        child: const Text('Limpar Carrinho'),
+                        child: const Text('Limpar Carrinho',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold)),
                       ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: () {
-                          // Simula o fechamento do pedido
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                        ),
+                        onPressed: () async {
+                          await carrinhoProvider.salvarPedido(
+                              bistroUser.id, masterId, bistroUser.idSessao!, bistroUser.nomeSessao!, bistroUser.num!);
+
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Pedido realizado com sucesso!'),
+                              backgroundColor: Colors.green,
+                              content: Text('Pedido realizado com sucesso!',
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold)),
                             ),
                           );
                           carrinhoProvider.limparCarrinho();
                           Navigator.pop(context); // Fecha o modal
                         },
-                        child: const Text('Finalizar Pedido'),
+                        child: const Text('Finalizar Pedido',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold)),
                       ),
-                    ),
+                    )
                   ],
                 ),
               ],

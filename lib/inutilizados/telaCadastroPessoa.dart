@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import 'telaLogin.dart';
+import '../screens/inicial/telaLogin.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});

@@ -1,4 +1,5 @@
 import 'package:bistro/classes/carrinho.dart';
+import 'package:bistro/classes/conta.dart';
 import 'package:bistro/verify.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -13,6 +14,7 @@ void main() async {
   runApp(MultiProvider(
     providers: [
       ChangeNotifierProvider(create: (_) => CarrinhoProvider()),
+      ChangeNotifierProvider(create: (_) => ContaProvider())
     ],
     child: MaterialApp(
       debugShowCheckedModeBanner: false,

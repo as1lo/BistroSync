@@ -11,6 +11,8 @@ class BistroUser {
   final String? primaryColor;
   final String? secondaryColor;
   final String? idMaster;
+  String? nomeSessao = '';
+  String? idSessao = '';
   final List<Map<String, dynamic>>? menuOptions;
 
   BistroUser(
@@ -22,6 +24,8 @@ class BistroUser {
       this.secondaryColor,
       this.senhaWifi,
       this.menuOptions,
+      this.idSessao,
+      this.nomeSessao,
       required this.email,
       required this.id,
       required this.tipoUser,

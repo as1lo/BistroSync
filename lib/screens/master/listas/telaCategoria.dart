@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:bistro/classes/user.dart';
-import 'package:bistro/screens/widgets/exibirLink.dart';
+import 'package:bistro/inutilizados/exibirLink.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 

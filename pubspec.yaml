@@ -63,6 +63,7 @@ dependencies:
   uuid: ^4.5.1
   awesome_dialog: ^3.2.1
   art_sweetalert: ^0.0.5
+  flutter_rating_bar: ^4.0.1
   
 dev_dependencies:
   flutter_test:

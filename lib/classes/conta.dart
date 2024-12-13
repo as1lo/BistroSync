@@ -9,16 +9,17 @@ class Conta {
 
   double get totalConta {
     return pedidos.fold(0.0, (total, pedido) {
-      return total + pedido['itens'].fold(0.0, (sum, item) {
-        return sum + (item['preco'] * item['quantidade']);
-      });
+      return total +
+          pedido['itens'].fold(0.0, (sum, item) {
+            return sum + (item['preco'] * item['quantidade']);
+          });
     });
   }
 
   void atualizarStatusConta(String idPedido) {
     for (var pedido in pedidos) {
       if (pedido['id'] == idPedido) {
-        pedido['statusConta'] = true; // Atualiza o status para 'pago'
+        pedido['statusConta'] = true;
       }
     }
   }
@@ -29,8 +30,26 @@ class ContaProvider with ChangeNotifier {
 
   List<Map<String, dynamic>> get pedidos => [..._pedidos];
 
+  double get totalConta {
+    return _pedidos.fold(0.0, (total, pedido) {
+      return total +
+          pedido['itens'].fold(0.0, (sum, item) {
+            final preco = item['preco'] ?? 0.0;
+            final quantidade = item['quantidade'] ?? 0;
+            return sum + (preco * quantidade);
+          });
+    });
+  }
+
+  List<Map<String, dynamic>> setPedidos() => _pedidos;
+
   void adicionarPedido(Map<String, dynamic> pedido) {
     _pedidos.add(pedido);
+    notifyListeners();
+  }
+
+  void limparPedidos() {
+    _pedidos = [];
     notifyListeners();
   }
 
@@ -44,10 +63,9 @@ class ContaProvider with ChangeNotifier {
   }
 
   Future<void> carregarPedidos(String idMesa) async {
-    
     final pedidosData = await FirebaseFirestore.instance
         .collection('users')
-        .doc(idMesa) 
+        .doc(idMesa)
         .collection('pedidos')
         .get();
 

@@ -1,8 +1,10 @@
+import 'package:bistro/classes/conta.dart';
 import 'package:bistro/classes/user.dart';
 import 'package:bistro/screens/mesa/fecharConta.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:provider/provider.dart';
 
 class MeusPedidos extends StatefulWidget {
   final BistroUser user;
@@ -14,7 +16,8 @@ class MeusPedidos extends StatefulWidget {
 }
 
 class _MeusPedidosState extends State<MeusPedidos> {
-  
+  final pedidosFinalizados = [];
+
   Widget buildPedidoColumn(String statusFilter) {
     print(statusFilter);
     print(widget.user.idMaster);
@@ -55,12 +58,22 @@ class _MeusPedidosState extends State<MeusPedidos> {
 
           final pedidos = snapshot.data!.docs;
           print(pedidos);
+
+          pedidosFinalizados.clear();
+
           return ListView.builder(
               itemCount: pedidos.length,
               shrinkWrap: true,
               itemBuilder: (context, index) {
                 final pedido = pedidos[index].data() as Map<String, dynamic>;
                 final idPedido = pedidos[index].id;
+
+                if (statusFilter == 'finalizado') {
+                  pedidosFinalizados.add(pedido);
+                  
+                  print('PEDIDOS FINALIZADOS: $pedidosFinalizados');
+                }
+
                 DateTime dataPedido = pedido['data'].toDate();
                 String horaPedido =
                     '${dataPedido.hour}:${dataPedido.minute}:${dataPedido.second}';
@@ -71,6 +84,8 @@ class _MeusPedidosState extends State<MeusPedidos> {
                       style: TextStyle(fontWeight: FontWeight.bold),
                     ),
                     subtitle: Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('Hora do pedido: $horaPedido'),
                         Text(
@@ -88,22 +103,26 @@ class _MeusPedidosState extends State<MeusPedidos> {
                                       'Quantidade: ${item['quantidade']}\nPreco: R\$ ${item['preco'].toStringAsFixed(2)}'),
                                 );
                               }),
-                        ])
+                        ]),
+                        SizedBox(height: 10),
+                        statusFilter == 'pendente'
+                            ? ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.red,
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(10))),
+                                onPressed: () async {
+                                  await cancelarPedido(
+                                      widget.user.idMaster!, idPedido);
+                                },
+                                child: Text('Cancelar',
+                                    style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold)))
+                            : SizedBox()
                       ],
                     ),
-                    trailing: statusFilter == 'pendente'
-                        ? ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.red,
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10))),
-                            onPressed: () async {
-                              await cancelarPedido(
-                                  widget.user.idMaster!, idPedido);
-                            },
-                            child: Text('Cancelar Pedido'),
-                          )
-                        : null,
                   ),
                 );
               });
@@ -117,18 +136,44 @@ class _MeusPedidosState extends State<MeusPedidos> {
 
   @override
   Widget build(BuildContext context) {
+    final contaProvider = Provider.of<ContaProvider>(context);
+
     return Scaffold(
         appBar: AppBar(
           title: Text('Meus Pedidos'),
           actions: [
             ElevatedButton.icon(
-                onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => FecharConta(
-                        user: widget.user,
+                onPressed: () {
+                  contaProvider.limparPedidos();
+                  print('onpressed: ' + pedidosFinalizados.length.toString());
+
+                  if (pedidosFinalizados.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      content: Text(
+                        'Nenhum pedido finalizado.',
+                        style: TextStyle(
+                            color: Colors.white, fontWeight: FontWeight.bold),
                       ),
-                    )),
+                      backgroundColor: Colors.red,
+                    ));
+                    return;
+                  }
+
+                  for (var pedido in pedidosFinalizados) {
+                    contaProvider.adicionarPedido(pedido);
+                    print('contaProvider.pedidos: ${contaProvider.pedidos.length}');
+                  }
+
+                  print('contaProvider.pedidos: ${contaProvider.pedidos}');
+
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => FecharConta(
+                          user: widget.user,
+                        ),
+                      ));
+                },
                 label: Text('Fechar Conta'),
                 icon: FaIcon(FontAwesomeIcons.cashRegister))
           ],

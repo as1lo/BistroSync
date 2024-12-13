@@ -76,7 +76,7 @@ class _MesaState extends State<Mesa> {
   }
 
   Widget _buildCarousel(Size size) {
-    if (_carouselImagesTeste.isEmpty) {
+    if (_carouselImages.isEmpty) {
       return Center(child: CircularProgressIndicator());
     }
 
@@ -112,7 +112,7 @@ class _MesaState extends State<Mesa> {
           autoPlay: true,
           enlargeCenterPage: true,
         ),
-        items: _carouselImagesTeste.map((base64Image) {
+        items: _carouselImages.map((base64Image) {
           return ClipRRect(
             borderRadius: BorderRadius.circular(8.0),
             child: Image.network(
